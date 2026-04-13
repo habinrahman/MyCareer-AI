@@ -1,0 +1,94 @@
+{
+  "structured_resume": {
+    "headline": "Senior Backend Engineer",
+    "experience": [
+      {
+        "title": "Software Engineer",
+        "company": "Example Corp",
+        "date_range": "2021 – Present",
+        "highlights": [
+          "Built REST APIs with FastAPI serving 2M+ requests/day",
+          "Led Postgres schema design and pgvector rollout"
+        ]
+      }
+    ],
+    "education": [
+      {
+        "institution": "State University",
+        "degree": "B.S.",
+        "field": "Computer Science",
+        "date_range": "2015 – 2019"
+      }
+    ],
+    "skills": ["Python", "PostgreSQL", "FastAPI", "Docker", "AWS"],
+    "certifications": ["AWS Solutions Architect – Associate"],
+    "languages": ["English"],
+    "summary_excerpt": "Backend engineer focused on scalable APIs and data systems."
+  },
+  "resume_score": 78,
+  "professional_summary": "Backend-focused software engineer with several years building high-traffic APIs and relational data models. Experience spans Python/FastAPI ecosystems, PostgreSQL, and cloud deployment patterns. Education in computer science supports strong fundamentals. Resume would benefit from clearer metrics and leadership examples to compete for senior-plus roles.",
+  "strengths": [
+    "Clear technical stack alignment with backend roles",
+    "Concrete stack keywords for ATS (Python, Postgres, AWS)",
+    "Progressive responsibility implied by scale metrics"
+  ],
+  "weaknesses": [
+    "Limited quantified business outcomes on some bullets",
+    "Leadership and cross-functional examples are thin",
+    "Education section could list GPA or honors only if true—currently sparse"
+  ],
+  "ats_compatibility": {
+    "score": 72,
+    "keywords_match": ["Python", "PostgreSQL", "REST", "AWS", "Docker"],
+    "formatting_notes": "Plain-text extraction; ensure one-column layout in source PDF for best ATS parsing.",
+    "suggestions": [
+      "Mirror keywords from target job descriptions in a Skills section",
+      "Use standard section headings: Experience, Education, Skills"
+    ]
+  },
+  "skills_assessment": {
+    "technical_skills": ["Python", "SQL/PostgreSQL", "API design", "Cloud (AWS)", "Containers"],
+    "soft_skills": ["Problem solving", "Ownership (inferred from delivery language)"],
+    "proficiency_notes": "Depth appears strongest in API and data layers; broaden explicit DevOps and observability terms if applicable."
+  },
+  "skill_gap_analysis": {
+    "gaps": [
+      {
+        "skill": "Observability (metrics/tracing)",
+        "gap_description": "No explicit mention of OpenTelemetry, Datadog, or similar.",
+        "importance": "medium"
+      },
+      {
+        "skill": "People leadership",
+        "gap_description": "No direct reports or mentoring called out.",
+        "importance": "high"
+      }
+    ],
+    "industry_context": "For staff/principal backend tracks, recruiters often expect measurable impact and broader system ownership."
+  },
+  "recommended_roles": [
+    "Backend Engineer",
+    "API Engineer",
+    "Platform Engineer",
+    "Software Engineer II/III (Backend)",
+    "Cloud Application Developer"
+  ],
+  "career_outlook": "With continued depth in distributed systems and measurable product impact, a realistic 5–10 year path could include senior/staff backend roles or technical lead tracks. Adding leadership narrative and cross-team delivery stories would widen options toward engineering management if desired.",
+  "improvement_suggestions": [
+    "Add 1–2 metrics per role (latency, cost, reliability, revenue)",
+    "Add a single line on collaboration (PM, design, data science)",
+    "Tighten top summary to 3 lines with role target and domain"
+  ],
+  "course_recommendations": [
+    {
+      "title": "Designing Data-Intensive Applications (book)",
+      "provider": "O'Reilly / Martin Kleppmann",
+      "rationale": "Strengthens system-design narrative for senior interviews."
+    },
+    {
+      "title": "AWS Certified Developer – Associate",
+      "provider": "AWS Training",
+      "rationale": "Formal signal if cloud ownership is a gap for target employers."
+    }
+  ]
+}

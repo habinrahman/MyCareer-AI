@@ -1,0 +1,138 @@
+# MyCareer AI — production stack for a VPS (e.g. DigitalOcean Droplet).
+# Prerequisites: DNS A/AAAA records for APP_HOST and API_HOST → droplet IP,
+# backend/.env and frontend/.env.production filled in, root .env for build args.
+#
+# First deploy: start stack, run deploy/scripts/init-letsencrypt.sh, restart nginx.
+# Local dev (no TLS): docker compose -f docker-compose.yml -f deploy/docker-compose.dev.yml up -d
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mycareer-api
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    expose:
+      - "8000"
+    command:
+      [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--workers",
+        "2",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+    networks:
+      - mycareer
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    container_name: mycareer-web
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env.production
+    expose:
+      - "3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - mycareer
+
+  nginx:
+    build:
+      context: ./deploy/docker/nginx
+      dockerfile: Dockerfile
+    container_name: mycareer-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_HOST: ${APP_HOST}
+      API_HOST: ${API_HOST}
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - mycareer
+
+  certbot:
+    image: certbot/certbot:v2.11.0
+    container_name: mycareer-certbot
+    restart: unless-stopped
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        trap exit TERM
+        while :; do
+          certbot renew --webroot -w /var/www/certbot --quiet || true
+          sleep 12h &
+          wait $$!
+        done
+    networks:
+      - mycareer
+
+  postgres:
+    profiles: ["local-db"]
+    image: pgvector/pgvector:pg16
+    container_name: mycareer-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mycareer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mycareer_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-mycareer}
+    ports:
+      - "${POSTGRES_PORT:-54322}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mycareer
+
+networks:
+  mycareer:
+    driver: bridge
+
+volumes:
+  letsencrypt:
+  certbot-www:
+  postgres_data:

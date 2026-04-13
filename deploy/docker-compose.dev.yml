@@ -1,0 +1,24 @@
+# Local / CI: publish API + web on localhost without Nginx or Certbot.
+# Usage from repo root:
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.dev.yml up -d
+#
+# This file overrides the production compose to:
+# - Disable Nginx and Certbot (profiles they never use — see below)
+# - Map ports 8000 and 3000 to the host
+
+services:
+  nginx:
+    profiles:
+      - local-disable-nginx
+
+  certbot:
+    profiles:
+      - local-disable-certbot
+
+  api:
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  web:
+    ports:
+      - "127.0.0.1:3000:3000"
