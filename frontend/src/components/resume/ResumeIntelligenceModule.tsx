@@ -69,10 +69,10 @@ export function ResumeIntelligenceModule() {
 
   return (
     <div className="resume-intelligence-root flex flex-1 flex-col bg-microGray">
-      <header className="relative z-0 overflow-hidden bg-gradient-to-br from-[#DC2626] via-[#EF4444] to-[#F87171] px-4 pb-24 pt-12 sm:px-6 sm:pb-28 sm:pt-16 lg:px-8">
+      <header className="relative z-0 overflow-hidden bg-gradient-to-br from-[#DC2626] via-[#EF4444] to-[#F87171] px-4 pb-24 pt-4 sm:px-6 sm:pb-28 sm:pt-6 lg:px-8">
         <div className="pointer-events-none absolute left-[-120px] top-[-120px] h-[400px] w-[400px] rounded-full bg-red-300/30 blur-[120px]" />
         <div className="pointer-events-none absolute bottom-[-100px] right-[-100px] h-[400px] w-[400px] rounded-full bg-pink-300/30 blur-[120px]" />
-        <div className="relative z-10 mx-auto max-w-3xl py-16 text-center">
+        <div className="relative z-10 mx-auto max-w-3xl py-8 text-center">
           <motion.div
             className="mb-4 inline-block rounded-full bg-white/20 px-4 py-1 text-xs font-medium text-white"
             initial={{ opacity: 0, y: -8 }}
@@ -102,7 +102,7 @@ export function ResumeIntelligenceModule() {
 
       <main className="relative z-10 mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
         <motion.div
-          className="relative z-10 -mt-20 rounded-2xl bg-white p-10 shadow-[0_30px_80px_rgba(0,0,0,0.18)] transition-all duration-300 sm:p-12"
+          className="relative z-10 -mt-24 rounded-2xl bg-white p-10 shadow-[0_30px_80px_rgba(0,0,0,0.18)] transition-all duration-300 sm:p-12"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.15 }}
