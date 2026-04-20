@@ -10,10 +10,23 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
+        sans: ["var(--font-geist-sans)", "Inter", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "ui-monospace", "monospace"],
       },
       colors: {
+        /** MicroDegree brand (aligned with marketing site — not generic Tailwind reds) */
+        microRed: "#EF4444",
+        microRedLight: "#F87171",
+        microRedSoft: "#FCA5A5",
+        microRedDark: "#DC2626",
+        microBlue: "#2563EB",
+        microBlueLight: "#3B82F6",
+        microGray: "#F9FAFB",
+        microGrayMuted: "#F3F4F6",
+        microText: "#111827",
+        microTextSecondary: "#374151",
+        microMuted: "#6B7280",
+        microLight: "#9CA3AF",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -55,6 +68,14 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        /** 12px — cards / controls */
+        micro: "12px",
+        /** 16px — hero panels / large surfaces */
+        "micro-lg": "16px",
+      },
+      boxShadow: {
+        micro: "0 4px 20px rgba(0, 0, 0, 0.08)",
+        "micro-lg": "0 10px 30px rgba(0, 0, 0, 0.12)",
       },
     },
   },

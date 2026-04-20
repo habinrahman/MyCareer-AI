@@ -16,9 +16,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
+import { featureFlags } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 
-const nav = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+};
+
+const allNav: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/resume", label: "Resume", icon: FileUp },
   { href: "/chat", label: "Mentor chat", icon: MessageSquare },
@@ -27,10 +34,28 @@ const nav = [
   { href: "/settings", label: "Account", icon: UserRound },
 ];
 
+function visibleNavItems(): NavItem[] {
+  const careersOn =
+    featureFlags.benchmarking ||
+    featureFlags.jobMatching ||
+    featureFlags.recruiterMode;
+  return allNav.filter((item) => {
+    if (item.href === "/dashboard" || item.href === "/resume") {
+      return featureFlags.workspace;
+    }
+    if (item.href === "/chat") return featureFlags.chat;
+    if (item.href === "/careers") return careersOn;
+    if (item.href === "/reports") return featureFlags.reports;
+    if (item.href === "/settings") return true;
+    return true;
+  });
+}
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { signOut } = useAuth();
+  const nav = visibleNavItems();
 
   function onSignOut() {
     void signOut();

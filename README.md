@@ -43,9 +43,10 @@ flowchart LR
 
 1. Create a project in Supabase.
 2. Run **`supabase/schema.sql`** in the SQL Editor (Dashboard → SQL). This is the production schema (`users`, `resumes`, `analyses`, `chat_*`, `recommendations`, `reports`, pgvector indexes, RLS, and Storage bucket stubs). The file `supabase/migrations/0001_init.sql` is a legacy minimal demo only; do not use it for the current FastAPI backend.
-3. Create a **Storage** bucket named `resumes` (private). Optionally add a policy so authenticated users can upload to their own folder prefix (`user_id/`).
-4. Copy **Project URL**, **anon key**, and **service role key** (server only) from Project Settings → API.
-5. For backend JWT verification: Project Settings → API → **JWT Secret**.
+3. **Resume PDF lead capture**: If your database was created before this feature, run **`supabase/migrations/0004_resume_download_leads.sql`** in the SQL Editor (or keep `schema.sql` in sync). This adds `public.resume_download_leads` for storing name, email, and phone before users download the public AI PDF. If you already applied an older `0004` that referenced `analyses`, run **`supabase/migrations/0005_resume_download_leads_drop_analysis_fk.sql`** so `analysis_id` stays optional without a foreign key. The backend exposes **`POST /leads/`** (rate-limited); inserts use your **`DATABASE_URL`** pooler connection.
+4. Create a **Storage** bucket named `resumes` (private). Optionally add a policy so authenticated users can upload to their own folder prefix (`user_id/`).
+5. Copy **Project URL**, **anon key**, and **service role key** (server only) from Project Settings → API.
+6. For backend JWT verification: Project Settings → API → **JWT Secret**.
 
 ## 2. Environment variables
 

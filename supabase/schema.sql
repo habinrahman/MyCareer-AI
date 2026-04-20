@@ -281,6 +281,27 @@ create trigger trg_reports_updated_at
   for each row execute function public.set_updated_at();
 
 -- -----------------------------------------------------------------------------
+-- 7b. resume_download_leads — public PDF download lead capture (no auth)
+-- -----------------------------------------------------------------------------
+create table if not exists public.resume_download_leads (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  email text not null,
+  phone text not null,
+  analysis_id uuid,
+  created_at timestamptz not null default now(),
+  constraint resume_download_leads_full_name_len check (char_length(trim(full_name)) >= 2),
+  constraint resume_download_leads_email_len check (char_length(email) <= 320),
+  constraint resume_download_leads_phone_len check (char_length(phone) between 8 and 32)
+);
+
+create index if not exists resume_download_leads_created_at_idx
+  on public.resume_download_leads (created_at desc);
+
+create index if not exists resume_download_leads_email_idx
+  on public.resume_download_leads (email);
+
+-- -----------------------------------------------------------------------------
 -- 8. industry_benchmarks (reference percentiles; no vectors)
 -- -----------------------------------------------------------------------------
 create table if not exists public.industry_benchmarks (
@@ -357,6 +378,7 @@ alter table public.recommendations enable row level security;
 alter table public.reports enable row level security;
 alter table public.industry_benchmarks enable row level security;
 alter table public.job_postings enable row level security;
+alter table public.resume_download_leads enable row level security;
 
 -- users
 drop policy if exists users_select_own on public.users;
@@ -595,6 +617,14 @@ drop policy if exists job_postings_select_active on public.job_postings;
 create policy job_postings_select_active on public.job_postings
   for select to authenticated
   using (is_active = true);
+
+-- resume_download_leads (public insert only; no client reads)
+drop policy if exists resume_download_leads_public_insert on public.resume_download_leads;
+create policy resume_download_leads_public_insert on public.resume_download_leads
+  for insert to anon, authenticated
+  with check (true);
+
+grant insert on public.resume_download_leads to anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Grants (Supabase roles)

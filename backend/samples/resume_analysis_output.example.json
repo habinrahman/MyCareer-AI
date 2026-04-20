@@ -1,5 +1,12 @@
 {
   "structured_resume": {
+    "basics": {
+      "name": "Jane Example",
+      "email": "jane@example.com",
+      "phone": "+1 555 0100",
+      "linkedin": "https://www.linkedin.com/in/jane-example",
+      "github": "https://github.com/janeexample"
+    },
     "headline": "Senior Backend Engineer",
     "experience": [
       {
@@ -79,16 +86,5 @@
     "Add a single line on collaboration (PM, design, data science)",
     "Tighten top summary to 3 lines with role target and domain"
   ],
-  "course_recommendations": [
-    {
-      "title": "Designing Data-Intensive Applications (book)",
-      "provider": "O'Reilly / Martin Kleppmann",
-      "rationale": "Strengthens system-design narrative for senior interviews."
-    },
-    {
-      "title": "AWS Certified Developer – Associate",
-      "provider": "AWS Training",
-      "rationale": "Formal signal if cloud ownership is a gap for target employers."
-    }
-  ]
+  "course_recommendations": []
 }

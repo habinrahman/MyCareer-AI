@@ -11,6 +11,7 @@ from app.core.dependencies import (
     get_openai_client,
     get_settings_dep,
 )
+from app.core.feature_guards import require_chat_enabled
 from app.schemas.chat import (
     ChatHistoryMessage,
     ChatHistoryResponse,
@@ -44,6 +45,7 @@ async def chat(
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
     openai: AsyncOpenAI = Depends(get_openai_client),
+    _: None = Depends(require_chat_enabled),
 ):
     msgs = [{"role": m.role, "content": m.content} for m in body.messages]
     if not msgs or msgs[-1]["role"] != "user":
@@ -96,6 +98,7 @@ async def chat_history(
     session_id: str,
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_chat_enabled),
 ) -> ChatHistoryResponse:
     if not await persistence.verify_chat_session(
         db, session_id=session_id, user_id=user_id

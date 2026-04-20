@@ -22,4 +22,7 @@ class SafeSlowAPIMiddleware(SlowAPIMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:  # type: ignore[no-untyped-def]
         if _is_docs_or_schema_path(request.url.path):
             return await call_next(request)
+        # CORS preflight must not consume rate limit budget (avoids flaky browser preflight).
+        if request.method == "OPTIONS":
+            return await call_next(request)
         return await super().dispatch(request, call_next)

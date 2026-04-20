@@ -69,7 +69,10 @@ class Settings(BaseSettings):
         description="If set, initialize Sentry for error monitoring.",
     )
 
-    rate_limit_enabled: bool = False
+    rate_limit_enabled: bool = Field(
+        default=True,
+        description="SlowAPI global switch (env: RATE_LIMIT_ENABLED). Set false for local debugging.",
+    )
     rate_limit_default: str = "120/minute"
 
     gzip_minimum_size: int = Field(default=512, ge=256, le=8192)
@@ -78,6 +81,52 @@ class Settings(BaseSettings):
         ge=0,
         le=3600,
         description="If >0, add Cache-Control max-age for safe GET responses (e.g. 30). 0 disables.",
+    )
+
+    # Feature flags (V1 MVP vs full product). Env: ENABLE_AUTH, ENABLE_CHAT, etc.
+    enable_auth: bool = Field(
+        default=True,
+        description="Primarily for frontend; keep JWT routes available when true.",
+    )
+    enable_chat: bool = Field(default=True)
+    enable_benchmarking: bool = Field(default=True)
+    enable_job_matching: bool = Field(default=True)
+    enable_recruiter_mode: bool = Field(default=True)
+    enable_reports: bool = Field(
+        default=True,
+        description="Authenticated report list / PDF download routes.",
+    )
+    public_resume_review_enabled: bool = Field(
+        default=True,
+        description="POST /public/analyze-resume (no auth).",
+    )
+    public_resume_db_owner_user_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "PUBLIC_RESUME_DB_OWNER_USER_ID",
+            "PUBLIC_RESUME_PERSIST_OWNER_USER_ID",
+        ),
+        description=(
+            "Legacy: UUID in public.users. Not used by POST /public/analyze-resume (stateless). "
+            "May still be read by optional internal helpers / scripts that call database_service "
+            "with a fixed tenant."
+        ),
+    )
+    default_user_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("DEFAULT_USER_ID"),
+        description=(
+            "Legacy: service UUID in public.users. Not used by POST /public/analyze-resume "
+            "(no shared-tenant persistence). Use authenticated resume routes to store per-user data."
+        ),
+    )
+    public_resume_persist_skip_embeddings: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("PUBLIC_RESUME_PERSIST_SKIP_EMBEDDINGS"),
+        description=(
+            "When using database_service public persist helpers (not the HTTP public analyze route), "
+            "skip OpenAI embeddings and store NULL vectors. Set false if you need pgvector RAG."
+        ),
     )
 
     max_upload_bytes: int = Field(default=8_388_608, ge=1_048_576, le=50_000_000)
@@ -190,6 +239,16 @@ class Settings(BaseSettings):
             raise ValueError("DATABASE_URL must include a host (e.g. postgresql+asyncpg://user:pass@host:5432/dbname).")
         return v
 
+    @field_validator("default_user_id", "public_resume_db_owner_user_id", mode="before")
+    @classmethod
+    def strip_optional_user_id(cls, v: object) -> object:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            return s or None
+        return v
+
     @model_validator(mode="after")
     def validate_database_host(self) -> "Settings":
         host = database_hostname_from_url(self.database_url)
@@ -203,8 +262,41 @@ class Settings(BaseSettings):
             ) from exc
         return self
 
+    def no_login_tenant_user_id(self) -> str | None:
+        """First configured legacy service UUID (``DEFAULT_USER_ID`` then legacy alias), if any."""
+        for raw in (self.default_user_id, self.public_resume_db_owner_user_id):
+            if raw is None:
+                continue
+            s = str(raw).strip()
+            if s:
+                return s
+        return None
+
     def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        """Parsed CORS origins; in development, always allow common local Next.js URLs."""
+        raw = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if self.app_env != "development":
+            return raw
+        if not raw:
+            raw = [
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3001",
+            ]
+        dev_defaults = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3001",
+        ]
+        merged: list[str] = []
+        seen: set[str] = set()
+        for o in raw + dev_defaults:
+            if o not in seen:
+                seen.add(o)
+                merged.append(o)
+        return merged
 
 
 @lru_cache

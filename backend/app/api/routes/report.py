@@ -1,17 +1,21 @@
+import logging
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from supabase import Client
 
-from app.core.config import Settings, get_settings
+from app.core.config import Settings
 from app.core.dependencies import (
     get_current_user_id,
     get_db,
     get_settings_dep,
     get_supabase_client,
 )
+from app.core.feature_guards import require_reports_enabled
 from app.schemas.report import ReportDetailResponse
-from app.services import persistence, supabase_storage
+from app.services import database_repository, persistence, supabase_storage
 from app.services.pdf_analysis_report import build_analysis_pdf_bytes
 from app.utils.ttl_response_cache import (
     get_cached_report_detail,
@@ -19,6 +23,7 @@ from app.utils.ttl_response_cache import (
 )
 
 router = APIRouter(tags=["Reports"])
+logger = logging.getLogger(__name__)
 
 
 @router.get(
@@ -31,14 +36,16 @@ async def download_analysis_report(
     analysis_id: str,
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_reports_enabled),
+    settings: Settings = Depends(get_settings_dep),
+    supabase: Client = Depends(get_supabase_client),
 ) -> Response:
-    row = await persistence.get_analysis_owned(
+    row = await database_repository.get_analysis_by_id(
         db, analysis_id=analysis_id, user_id=user_id
     )
     if not row:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Analysis not found")
 
-    settings = get_settings()
     profile = await persistence.get_user_pdf_profile(db, user_id=user_id)
     base = (str(settings.public_app_url).rstrip("/") if settings.public_app_url else "")
     online_report_url = (
@@ -58,6 +65,53 @@ async def download_analysis_report(
         candidate_github_url=profile.get("github_url"),
         online_report_url=online_report_url,
     )
+    existing_report = await persistence.get_ready_report_id_for_analysis(
+        db, user_id=user_id, analysis_id=row["id"]
+    )
+    if existing_report:
+        logger.info(
+            "report.download_reused_existing analysis_id=%s user=%s report_id=%s",
+            row["id"],
+            user_id,
+            existing_report,
+        )
+    else:
+        storage_path = f"{user_id}/reports/analysis-{row['id'][:8]}-{uuid.uuid4().hex}.pdf"
+        try:
+            await supabase_storage.upload_bytes(
+                supabase,
+                settings.supabase_reports_bucket,
+                storage_path,
+                pdf,
+                "application/pdf",
+            )
+            await database_repository.create_report(
+                db,
+                user_id=user_id,
+                analysis_id=row["id"],
+                title="MyCareer AI — Career intelligence report",
+                report_type="resume_review",
+                storage_path=storage_path,
+                status="ready",
+                meta={"bytes": len(pdf), "source": "GET /download-report"},
+            )
+            await db.commit()
+            logger.info(
+                "report.download_persisted analysis_id=%s user=%s path=%s",
+                row["id"],
+                user_id,
+                storage_path,
+            )
+        except Exception as exc:
+            await db.rollback()
+            logger.warning(
+                "report.download_persist_skipped analysis_id=%s user=%s err=%s",
+                row["id"],
+                user_id,
+                exc,
+                exc_info=settings.debug,
+            )
+
     fname = f"mycareer-ai-report-{row['id'][:8]}.pdf"
     return Response(
         content=pdf,
@@ -80,12 +134,13 @@ async def get_report(
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
     supabase: Client = Depends(get_supabase_client),
+    _: None = Depends(require_reports_enabled),
 ) -> ReportDetailResponse:
     cached = get_cached_report_detail(user_id, report_id)
     if cached is not None:
         return cached
 
-    row = await persistence.get_report_owned(
+    row = await database_repository.get_report_by_id(
         db, report_id=report_id, user_id=user_id
     )
     if not row:

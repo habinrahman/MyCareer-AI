@@ -1,0 +1,16 @@
+/* MicroDegree Resume Intelligence — page-scoped accents (see also tailwind micro* tokens) */
+
+.resume-intelligence-root {
+  --md-red: #ef4444;
+  --md-red-light: #f87171;
+  --md-red-soft: #fca5a5;
+  --md-red-dark: #dc2626;
+  --md-blue: #2563eb;
+  --md-blue-light: #3b82f6;
+  --md-bg: #f9fafb;
+  --md-bg-muted: #f3f4f6;
+  --md-text: #111827;
+  --md-text-secondary: #374151;
+  --md-muted: #6b7280;
+  --md-light: #9ca3af;
+}

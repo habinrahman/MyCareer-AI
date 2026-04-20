@@ -11,6 +11,7 @@ TLS trust bundle: ``DATABASE_SSL_CAFILE`` if set, otherwise ``certifi.where()`` 
 from __future__ import annotations
 
 import ssl
+from uuid import uuid4
 from urllib.parse import ParseResult, parse_qs, urlparse
 
 import certifi
@@ -100,6 +101,21 @@ def build_asyncpg_connect_args(settings: Settings) -> dict:
         )
 
     if _uses_supabase_transaction_pooler(parsed):
+        # PgBouncer **transaction** mode (Supabase port 6543, ``*.pooler.supabase.com``, or
+        # ``?pgbouncer=true``): the same client session may hit different PostgreSQL backends, so
+        # prepared statements must not be reused.
+        #
+        # - ``statement_cache_size`` — asyncpg's built-in statement cache (see asyncpg docs).
+        # - ``prepared_statement_cache_size`` — SQLAlchemy's asyncpg dialect cache around
+        #   ``asyncpg.prepare()`` (not passed through to ``asyncpg.connect``; popped by the
+        #   dialect). Both must be ``0`` or you can see ``DuplicatePreparedStatementError`` /
+        #   similar failures behind Supabase poolers.
+        #
+        # Additionally, PgBouncer can hand us a server connection where a statement name is
+        # already taken, even if we don't cache locally. Using a dynamic prepared statement
+        # name avoids collisions.
         args["statement_cache_size"] = 0
+        args["prepared_statement_cache_size"] = 0
+        args["prepared_statement_name_func"] = lambda: f"__asyncpg_{uuid4()}__"
 
     return args

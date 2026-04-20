@@ -13,6 +13,7 @@ import {
   useSession,
   useSupabaseConfigured,
 } from "@/hooks/use-session";
+import { featureFlags } from "@/lib/feature-flags";
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -22,12 +23,20 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { data: session, isPending, isError, error } = useSession();
 
   useEffect(() => {
+    if (!featureFlags.auth) {
+      router.replace("/");
+      return;
+    }
     if (!configured || !hydrated || isPending) return;
     if (!session) {
       const next = encodeURIComponent(pathname || "/dashboard");
       router.replace(`/auth/login?next=${next}`);
     }
   }, [configured, hydrated, isPending, session, router, pathname]);
+
+  if (!featureFlags.auth) {
+    return <AuthSkeleton />;
+  }
 
   if (!configured) {
     return (
