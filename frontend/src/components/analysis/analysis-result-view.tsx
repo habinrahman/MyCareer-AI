@@ -13,6 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { LearningPaths } from "@/components/resume/LearningPaths";
+import RecommendedVideos from "@/components/RecommendedVideos";
 import { Separator } from "@/components/ui/separator";
 
 function ListBlock({
@@ -245,20 +247,15 @@ export function AnalysisResultView({ data }: { data: AnalyzeResumeResponse }) {
       {a.course_recommendations?.length ? (
         <Card>
           <CardHeader>
-            <CardTitle>Learning picks</CardTitle>
+            <CardTitle>Learning paths</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {a.course_recommendations.map((c) => (
-              <div key={c.title} className="rounded-md border p-3 text-sm">
-                <p className="font-medium">{c.title}</p>
-                {c.provider ? (
-                  <p className="text-xs text-muted-foreground">{c.provider}</p>
-                ) : null}
-                {c.rationale ? (
-                  <p className="mt-2 text-muted-foreground">{c.rationale}</p>
-                ) : null}
-              </div>
-            ))}
+          <CardContent>
+            <LearningPaths
+              paths={a.course_recommendations}
+              showHeading={false}
+              className="mt-0 border-0 p-0"
+            />
+            <RecommendedVideos roles={a.recommended_roles ?? []} />
           </CardContent>
         </Card>
       ) : null}

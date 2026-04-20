@@ -1,10 +1,15 @@
 """
 Async SQLAlchemy engine for PostgreSQL (Supabase).
 
-``connect_args`` are built in ``app.core.postgres_connect`` (Step 3 style): TLS uses
+``connect_args`` are built in ``app.core.postgres_connect``: TLS uses
 ``ssl.create_default_context(cafile=DATABASE_SSL_CAFILE or certifi.where())`` when the default
-certifi path applies; ``statement_cache_size=0`` is set only for the Supabase transaction pooler
-(port 6543 / pooler host / ``pgbouncer=true``), not for every connection.
+certifi path applies.
+
+For **PgBouncer transaction mode** (Supabase pooler: port ``6543``, ``*.pooler.supabase.com``,
+or ``?pgbouncer=true``), that module sets ``statement_cache_size=0`` **and**
+``prepared_statement_cache_size=0``. Both are required: asyncpg's cache and SQLAlchemy's asyncpg
+dialect prepared-statement cache conflict with transaction pooling and can raise
+``DuplicatePreparedStatementError`` if left enabled.
 
 Import ``postgres_connect`` from smoke scripts instead of this package to avoid creating the
 global engine at import time.

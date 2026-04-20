@@ -6,6 +6,7 @@ const PROTECTED_PREFIXES = [
   "/reports",
   "/analysis",
   "/settings",
+  "/careers",
 ] as const;
 
 const AUTH_PREFIX = "/auth";

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Any
 
@@ -6,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from supabase import Client
 
 from app.core.config import Settings
-from app.services import openai_service, persistence, supabase_storage
+from app.services import database_repository, openai_service, persistence, supabase_storage
 from app.services.resume_analysis_llm import analyze_resume_structured
 from app.services.resume_parser import (
     UnsupportedResumeFormatError,
@@ -41,7 +42,7 @@ async def upload_resume_file(
     path = storage_object_key(user_id, safe_name)
     mime = content_type or "application/octet-stream"
 
-    await persistence.ensure_user_row(session, user_id)
+    await database_repository.ensure_user(session, user_id)
     await supabase_storage.upload_bytes(
         supabase,
         settings.supabase_resumes_bucket,
@@ -50,7 +51,7 @@ async def upload_resume_file(
         mime,
     )
 
-    resume_id = await persistence.insert_resume_row(
+    resume_id = await database_repository.create_resume(
         session,
         user_id=user_id,
         original_filename=filename,
@@ -102,7 +103,9 @@ async def analyze_resume_for_user(
                 supabase, settings.supabase_resumes_bucket, storage_path
             )
             try:
-                text_body = parse_resume_file(raw, row["original_filename"])
+                text_body = await asyncio.to_thread(
+                    parse_resume_file, raw, row["original_filename"]
+                )
             except UnsupportedResumeFormatError as exc:
                 raise AppError(str(exc), status_code=400) from exc
             except ValueError as exc:
@@ -147,7 +150,8 @@ async def analyze_resume_for_user(
             embedding_str=emb_str,
             language=None,
         )
-        analysis_id = await persistence.insert_analysis(
+        # ``insert_analysis`` upserts on (resume_id, analysis_version) — safe under double-submit.
+        analysis_id = await database_repository.create_analysis(
             session,
             user_id=user_id,
             resume_id=resume_id,

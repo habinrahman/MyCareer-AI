@@ -79,6 +79,12 @@ async def insert_resume_row(
     storage_path: str,
     meta: dict[str, Any],
 ) -> str:
+    """
+    Idempotent upsert on ``(user_id, storage_path)`` when ``storage_path`` is set.
+
+    Requires partial unique index ``resumes_user_storage_path_unique`` from
+    ``supabase/migrations/0007_dedupe_resume_report_integrity.sql`` (or equivalent).
+    """
     result = await session.execute(
         text(
             """
@@ -95,6 +101,13 @@ async def insert_resume_row(
                 'pending',
                 CAST(:meta AS jsonb)
             )
+            ON CONFLICT (user_id, storage_path) WHERE storage_path IS NOT NULL
+            DO UPDATE SET
+                original_filename = EXCLUDED.original_filename,
+                mime_type = EXCLUDED.mime_type,
+                file_size_bytes = EXCLUDED.file_size_bytes,
+                meta = EXCLUDED.meta,
+                updated_at = now()
             RETURNING id::text
             """
         ),
@@ -153,24 +166,28 @@ async def update_resume_parsed(
     *,
     resume_id: str,
     parsed_text: str,
-    embedding_str: str,
+    embedding_str: str | None,
     language: str | None,
 ) -> None:
-    await session.execute(
-        text(
-            """
+    emb_sql = "CAST(:emb AS vector)" if embedding_str else "NULL"
+    sql = f"""
             UPDATE public.resumes
             SET
                 parsed_text = :text,
                 parsing_status = 'ready',
-                embedding = CAST(:emb AS vector),
+                embedding = {emb_sql},
                 language = COALESCE(:lang, language),
                 updated_at = now()
             WHERE id = CAST(:rid AS uuid)
             """
-        ),
-        {"text": parsed_text, "emb": embedding_str, "lang": language, "rid": resume_id},
-    )
+    params: dict[str, Any] = {
+        "text": parsed_text,
+        "lang": language,
+        "rid": resume_id,
+    }
+    if embedding_str:
+        params["emb"] = embedding_str
+    await session.execute(text(sql), params)
 
 
 async def set_resume_failed(session: AsyncSession, resume_id: str) -> None:
@@ -214,6 +231,11 @@ async def insert_analysis(
     scores: dict[str, Any],
     embedding_str: str | None,
 ) -> str:
+    """
+    Upsert on ``(resume_id, analysis_version)`` (constraint ``analyses_resume_version_uniq``).
+
+    Concurrent retries merge the latest model output into the same version row.
+    """
     emb_sql = "CAST(:emb AS vector)" if embedding_str else "NULL"
     sql = f"""
         INSERT INTO public.analyses (
@@ -232,6 +254,16 @@ async def insert_analysis(
             {emb_sql},
             '{{}}'::jsonb
         )
+        ON CONFLICT (resume_id, analysis_version)
+        DO UPDATE SET
+            user_id = EXCLUDED.user_id,
+            model = EXCLUDED.model,
+            prompt_version = EXCLUDED.prompt_version,
+            summary = EXCLUDED.summary,
+            findings = EXCLUDED.findings,
+            scores = EXCLUDED.scores,
+            embedding = EXCLUDED.embedding,
+            updated_at = now()
         RETURNING id::text
     """
     params: dict[str, Any] = {
@@ -349,6 +381,176 @@ async def get_report_owned(
     )
     row = result.mappings().fetchone()
     return dict(row) if row else None
+
+
+async def insert_report_row(
+    session: AsyncSession,
+    *,
+    user_id: str,
+    analysis_id: str | None,
+    title: str,
+    report_type: str,
+    storage_path: str | None,
+    status: str,
+    meta: dict[str, Any] | None = None,
+) -> str:
+    """Insert a report row (PDF metadata + optional Storage path). Caller commits."""
+    meta = meta or {}
+    params: dict[str, Any] = {
+        "user_id": user_id,
+        "title": title,
+        "report_type": report_type,
+        "storage_path": storage_path,
+        "status": status,
+        "meta": json.dumps(meta),
+    }
+    if analysis_id:
+        # One stored PDF row per analysis (partial unique index from migration 0007).
+        sql = """
+            INSERT INTO public.reports (
+                user_id, analysis_id, title, report_type, storage_path, status, meta
+            )
+            VALUES (
+                CAST(:user_id AS uuid),
+                CAST(:analysis_id AS uuid),
+                :title,
+                :report_type,
+                :storage_path,
+                :status,
+                CAST(:meta AS jsonb)
+            )
+            ON CONFLICT (analysis_id) WHERE analysis_id IS NOT NULL
+            DO UPDATE SET
+                user_id = EXCLUDED.user_id,
+                title = EXCLUDED.title,
+                report_type = EXCLUDED.report_type,
+                storage_path = EXCLUDED.storage_path,
+                status = EXCLUDED.status,
+                meta = EXCLUDED.meta,
+                updated_at = now()
+            RETURNING id::text
+        """
+        params["analysis_id"] = analysis_id
+    else:
+        sql = """
+            INSERT INTO public.reports (
+                user_id, analysis_id, title, report_type, storage_path, status, meta
+            )
+            VALUES (
+                CAST(:user_id AS uuid),
+                NULL,
+                :title,
+                :report_type,
+                :storage_path,
+                :status,
+                CAST(:meta AS jsonb)
+            )
+            RETURNING id::text
+        """
+    result = await session.execute(text(sql), params)
+    row = result.fetchone()
+    if not row or row[0] is None:
+        raise RuntimeError("insert_report_row failed")
+    return str(row[0])
+
+
+async def insert_resume_download_lead(
+    session: AsyncSession,
+    *,
+    full_name: str,
+    email: str,
+    phone: str,
+    analysis_id: str | None,
+) -> str:
+    """Insert a public PDF download lead. Caller commits. Returns new row id."""
+    result = await session.execute(
+        text(
+            """
+            INSERT INTO public.resume_download_leads
+              (full_name, email, phone, analysis_id)
+            VALUES
+              (:full_name, :email, :phone, :analysis_id)
+            RETURNING id::text
+            """
+        ),
+        {
+            "full_name": full_name,
+            "email": email,
+            "phone": phone,
+            "analysis_id": analysis_id,
+        },
+    )
+    row = result.fetchone()
+    if not row or row[0] is None:
+        raise RuntimeError("insert_resume_download_lead failed")
+    return str(row[0])
+
+
+async def get_resume_id_by_user_and_storage_path(
+    session: AsyncSession,
+    *,
+    user_id: str,
+    storage_path: str,
+) -> str | None:
+    """Return resume id if this user already has a row for the storage key (idempotency)."""
+    if not storage_path:
+        return None
+    result = await session.execute(
+        text(
+            """
+            SELECT id::text FROM public.resumes
+            WHERE user_id = CAST(:uid AS uuid) AND storage_path = :path
+            LIMIT 1
+            """
+        ),
+        {"uid": user_id, "path": storage_path},
+    )
+    row = result.fetchone()
+    return str(row[0]) if row and row[0] else None
+
+
+async def get_analysis_id_by_resume_version(
+    session: AsyncSession,
+    *,
+    resume_id: str,
+    analysis_version: int,
+) -> str | None:
+    result = await session.execute(
+        text(
+            """
+            SELECT id::text FROM public.analyses
+            WHERE resume_id = CAST(:rid AS uuid) AND analysis_version = :ver
+            LIMIT 1
+            """
+        ),
+        {"rid": resume_id, "ver": analysis_version},
+    )
+    row = result.fetchone()
+    return str(row[0]) if row and row[0] else None
+
+
+async def get_ready_report_id_for_analysis(
+    session: AsyncSession,
+    *,
+    user_id: str,
+    analysis_id: str,
+) -> str | None:
+    """Return an existing ready report id for this analysis (one PDF row per analysis)."""
+    result = await session.execute(
+        text(
+            """
+            SELECT id::text FROM public.reports
+            WHERE user_id = CAST(:uid AS uuid)
+              AND analysis_id = CAST(:aid AS uuid)
+              AND status = 'ready'
+            ORDER BY created_at DESC
+            LIMIT 1
+            """
+        ),
+        {"uid": user_id, "aid": analysis_id},
+    )
+    row = result.fetchone()
+    return str(row[0]) if row and row[0] else None
 
 
 async def insert_chat_session(

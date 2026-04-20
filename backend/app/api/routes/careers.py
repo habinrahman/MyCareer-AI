@@ -11,6 +11,11 @@ from app.core.dependencies import (
     get_openai_client,
     get_settings_dep,
 )
+from app.core.feature_guards import (
+    require_benchmarking_enabled,
+    require_career_profile_enabled,
+    require_job_matching_enabled,
+)
 from app.middleware.rate_limit import limiter
 from app.schemas.careers import (
     BenchmarksResponse,
@@ -32,6 +37,7 @@ async def get_career_profile(
     request: Request,
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_career_profile_enabled),
 ) -> CareerProfileResponse:
     await persistence.ensure_user_row(db, user_id)
     return CareerProfileResponse()
@@ -44,6 +50,7 @@ async def update_career_profile(
     body: CareerProfileUpdateRequest = Body(default_factory=CareerProfileUpdateRequest),
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_career_profile_enabled),
 ) -> CareerProfileResponse:
     _ = body  # validated by FastAPI; extend CareerProfileUpdateRequest when PATCH fields exist
     await persistence.ensure_user_row(db, user_id)
@@ -62,8 +69,9 @@ async def get_benchmarks(
     role_family: str | None = Query(default=None),
     resume_id: str | None = Query(default=None),
     metric_name: str = Query(default="resume_score"),
+    _: None = Depends(require_benchmarking_enabled),
 ) -> BenchmarksResponse:
-    return await benchmarking_service.build_benchmarks_response(
+    out = await benchmarking_service.build_benchmarks_response(
         db,
         user_id=user_id,
         industry=industry,
@@ -71,6 +79,14 @@ async def get_benchmarks(
         resume_id=resume_id,
         metric_name=metric_name,
     )
+    logger.info(
+        "careers.benchmarks_read user=%s industry=%s role_family=%s comparisons=%s",
+        user_id,
+        industry,
+        role_family,
+        len(out.comparisons),
+    )
+    return out
 
 
 @router.post("/jobs/match", response_model=JobMatchResponse)
@@ -82,6 +98,7 @@ async def post_job_match(
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
     openai: AsyncOpenAI = Depends(get_openai_client),
+    _: None = Depends(require_job_matching_enabled),
 ) -> JobMatchResponse:
     return await job_matching_service.match_jobs_for_user(
         db,

@@ -12,6 +12,8 @@ from app.prompts.resume_analysis import (
     RESUME_ANALYSIS_USER_SUFFIX,
 )
 from app.schemas.resume_analysis import ResumeAnalysisOutput
+from app.services.ats_score_calibration import apply_ats_calibration
+from app.services.recommendation_engine import enrich_resume_analysis_with_microdegree_paths
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,10 @@ def _parse_and_validate(content: str) -> ResumeAnalysisOutput:
     data: Any = json.loads(content)
     if not isinstance(data, dict):
         raise ValueError("root must be object")
-    return ResumeAnalysisOutput.model_validate(data)
+    nlp = ResumeAnalysisOutput.model_validate(data)
+    # Replace any model-suggested external courses with MicroDegree catalog paths.
+    nlp = enrich_resume_analysis_with_microdegree_paths(nlp)
+    return apply_ats_calibration(nlp)
 
 
 async def analyze_resume_structured(

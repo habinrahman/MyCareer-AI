@@ -64,6 +64,7 @@ def test_transaction_pooler_sets_statement_cache_off() -> None:
     )
     args = build_asyncpg_connect_args(s)
     assert args.get("statement_cache_size") == 0
+    assert args.get("prepared_statement_cache_size") == 0
 
 
 def test_pgbouncer_query_sets_statement_cache_off() -> None:
@@ -74,6 +75,18 @@ def test_pgbouncer_query_sets_statement_cache_off() -> None:
     )
     args = build_asyncpg_connect_args(s)
     assert args.get("statement_cache_size") == 0
+    assert args.get("prepared_statement_cache_size") == 0
+
+
+def test_pooler_supabase_hostname_sets_statement_caches_off() -> None:
+    s = _settings(
+        database_url=(
+            "postgresql+asyncpg://user:pass@aws-0-eu-central-1.pooler.supabase.com:5432/postgres"
+        ),
+    )
+    args = build_asyncpg_connect_args(s)
+    assert args.get("statement_cache_size") == 0
+    assert args.get("prepared_statement_cache_size") == 0
 
 
 def test_staging_always_verifies_tls_hostname_even_if_flag_false() -> None:

@@ -30,9 +30,20 @@ class EducationEntry(BaseModel):
     date_range: str | None = None
 
 
+class ContactBasics(BaseModel):
+    """Contact block extracted only from the resume (header/footer); no fabrication."""
+
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    linkedin: str | None = None
+    github: str | None = None
+
+
 class StructuredResume(BaseModel):
     """Structured view derived from raw resume text (no fabrication)."""
 
+    basics: ContactBasics | None = None
     headline: str | None = None
     experience: list[ExperienceEntry] = Field(default_factory=list)
     education: list[EducationEntry] = Field(default_factory=list)

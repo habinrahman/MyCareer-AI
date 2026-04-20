@@ -16,8 +16,8 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MyCareer AI",
-  description: "Resume analysis and AI career guidance",
+  title: "MyCareer AI — Resume review",
+  description: "AI-powered resume review: ATS scoring, strengths, gaps, and suggestions.",
 };
 
 export default function RootLayout({

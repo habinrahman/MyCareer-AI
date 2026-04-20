@@ -1,9 +1,21 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from "axios";
 
+import { featureFlags } from "@/lib/feature-flags";
 import { tryGetSupabaseBrowserClient } from "@/lib/supabaseClient";
 
-const baseURL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:8000";
+/**
+ * Empty / whitespace NEXT_PUBLIC_API_URL must not become "" — Axios would then
+ * hit the Next.js origin (e.g. POST /public/... → 404) and the browser reports a CORS error.
+ */
+function resolveApiBaseUrl(): string {
+  const raw = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/$/, "");
+  return raw.length > 0 ? raw : "http://localhost:8000";
+}
+
+const baseURL = resolveApiBaseUrl();
+
+/** Resolved API origin for fetch/axios (same as axios `baseURL`). */
+export const API_BASE_URL = baseURL;
 
 /** Optional override (e.g. tests). If unset, the interceptor reads the browser session. */
 let getAccessTokenOverride: (() => Promise<string | null>) | null = null;
@@ -40,6 +52,9 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
     config.headers.set("Content-Type", "application/json");
   }
   let token: string | null = null;
+  if (!featureFlags.auth) {
+    return config;
+  }
   if (getAccessTokenOverride) {
     token = await getAccessTokenOverride();
   } else if (typeof window !== "undefined") {
@@ -65,6 +80,24 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
 
 export const apiClient = api;
 
+/**
+ * Public resume analysis only — never attaches Supabase JWT.
+ * Use from MicroDegree Resume Intelligence and other unauthenticated flows.
+ */
+export const publicResumeApi: AxiosInstance = axios.create({
+  baseURL,
+  timeout: 120_000,
+});
+
+publicResumeApi.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  if (config.data instanceof FormData) {
+    config.headers.delete("Content-Type");
+  } else {
+    config.headers.set("Content-Type", "application/json");
+  }
+  return config;
+});
+
 export default api;
 
 export async function apiFetch(
@@ -75,6 +108,8 @@ export async function apiFetch(
   const hdrs = new Headers(headers);
   if (accessToken) {
     hdrs.set("Authorization", `Bearer ${accessToken}`);
+  } else if (!featureFlags.auth) {
+    // Public-only mode: no Supabase session
   } else if (typeof window !== "undefined") {
     const client = tryGetSupabaseBrowserClient();
     if (client) {

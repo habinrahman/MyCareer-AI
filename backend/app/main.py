@@ -13,9 +13,10 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from sqlalchemy import text
 
 from app.api.router import api_router
-from app.core.config import get_settings
+from app.core.config import database_hostname_from_url, get_settings
 from app.core.database import engine
 from app.middleware.cache_headers import CacheControlMiddleware
 from app.middleware.rate_limit import apply_rate_limit_settings, limiter
@@ -32,6 +33,17 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     setup_logging(settings.log_level, log_json=settings.log_json)
     logger.info("startup env=%s service=%s", settings.app_env, settings.app_name)
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        host = database_hostname_from_url(settings.database_url)
+        logger.info("database.connectivity_ok host=%s driver=asyncpg", host)
+    except Exception as exc:
+        logger.error("database.connectivity_startup_failed err=%s", exc, exc_info=True)
+    if settings.public_resume_review_enabled:
+        logger.info(
+            "public_resume_review_enabled: POST /public/analyze-resume is stateless (no DB/Storage writes)"
+        )
     yield
     await engine.dispose()
     logger.info("shutdown complete")
@@ -53,23 +65,21 @@ def create_app() -> FastAPI:
         )
         logger.info("sentry_initialized")
 
+    include_openapi_routes = settings.app_env != "production"
     application = FastAPI(
         title="MyCareer AI API",
-        description=(
-            "Async FastAPI backend: resume upload (Supabase Storage), AI analysis "
-            "(OpenAI), career chat, and report retrieval with signed URLs."
-        ),
-        version="0.2.0",
+        description="AI-powered Resume Review Platform (V1)",
+        version="1.0.0",
         lifespan=lifespan,
         debug=settings.debug,
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
+        docs_url="/docs" if include_openapi_routes else None,
+        redoc_url="/redoc" if include_openapi_routes else None,
+        openapi_url="/openapi.json" if include_openapi_routes else None,
     )
 
-    # CORS is registered after other middleware so it stays effective for preflight;
-    # allow_headers uses an explicit list (not "*") because browsers reject
-    # wildcard Allow-Headers together with allow_credentials=True.
+    # CORS: comma-separated ``CORS_ORIGINS`` (see Settings). In ``APP_ENV=development``,
+    # common localhost Next.js ports are merged with configured origins. Never use ``*``
+    # with ``allow_credentials=True``.
 
     application.state.limiter = limiter
     application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -94,21 +104,12 @@ def create_app() -> FastAPI:
     )
     # When RATE_LIMIT_ENABLED=false, limiter.enabled is False and this middleware no-ops immediately.
     application.add_middleware(SafeSlowAPIMiddleware)
-    # Explicit headers: credentialed browsers reject wildcard * for Allow-Headers on some setups.
-    _cors_headers = [
-        "Authorization",
-        "Content-Type",
-        "Accept",
-        "Origin",
-        "X-Requested-With",
-        settings.request_id_header,
-    ]
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list(),
         allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=_cors_headers,
+        allow_headers=["*"],
     )
 
     @application.exception_handler(AppError)
@@ -148,7 +149,8 @@ def create_app() -> FastAPI:
         )
 
     application.include_router(api_router)
-    _attach_openapi_security(application)
+    if include_openapi_routes:
+        _attach_openapi_security(application)
     return application
 
 
