@@ -1,0 +1,3 @@
+{
+  "query": "query { repository(owner: \"fastapi\", name: \"fastapi\") { discussions(first: 40, orderBy: {field: UPDATED_AT, direction: DESC}) { nodes { id number title url category { name } comments { totalCount } answer { url } } } } }"
+}

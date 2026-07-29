@@ -286,10 +286,13 @@ Use **`deploy/DEPLOYMENT.md`**: Dockerfiles, Compose, Nginx reverse proxy, Certb
 Re-record locally (mock API, no OpenAI key):
 
 ```bash
-cd frontend && npm run dev
-cd ../scripts && npm install && npx playwright install chromium
-node record-resume-demo.mjs
+cd frontend && PORT=3010 npm run dev
+# in another terminal:
+cd scripts && npm install && npx playwright install chromium
+DEMO_BASE_URL=http://localhost:3010 npm run record:demo
 ```
+
+Use `DEMO_BASE_URL` if the dev server binds to a port other than 3000.
 
 ## 12. Roadmap
 

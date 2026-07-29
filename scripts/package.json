@@ -2,6 +2,9 @@
   "name": "mycareer-demo-scripts",
   "private": true,
   "type": "module",
+  "scripts": {
+    "record:demo": "node record-resume-demo.mjs"
+  },
   "dependencies": {
     "gifenc": "^1.0.3",
     "playwright": "^1.49.1",
