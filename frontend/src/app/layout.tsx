@@ -16,8 +16,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MyCareer AI — Resume review",
-  description: "AI-powered resume review: ATS scoring, strengths, gaps, and suggestions.",
+  title: "AI Resume Intelligence | MicroDegree",
+  description:
+    "Upload your resume for ATS scoring, skill insights, and career recommendations — powered by MicroDegree AI.",
 };
 
 export default function RootLayout({

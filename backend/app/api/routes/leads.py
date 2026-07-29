@@ -1,9 +1,11 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DBAPIError, IntegrityError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
+from starlette.responses import Response
 
 from app.core.database import get_db
 from app.middleware.rate_limit import limiter
@@ -27,7 +29,7 @@ async def create_lead(
     request: Request,
     lead: LeadCreate,
     db: AsyncSession = Depends(get_db),
-) -> LeadCreatedResponse:
+) -> Response:
     """
     Capture contact details before PDF download (public; no JWT).
     Inserts into ``public.resume_download_leads`` using the API database role.
@@ -87,4 +89,8 @@ async def create_lead(
         ) from exc
 
     logger.info("lead.captured lead_id=%s email=%s", lead_id, lead.email)
-    return LeadCreatedResponse(lead_id=lead_id)
+    payload = LeadCreatedResponse(lead_id=lead_id)
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=payload.model_dump(),
+    )
