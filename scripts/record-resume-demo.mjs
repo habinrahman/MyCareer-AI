@@ -65,7 +65,7 @@ async function main() {
 
   const pngFrames = [];
 
-  await page.goto(`${BASE_URL}/tools/resume-intelligence`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE_URL}/tools/resume-intelligence`, { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.waitForTimeout(800);
   pngFrames.push(await capturePng(page));
 
