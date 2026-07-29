@@ -1,0 +1,68 @@
+{
+  "summary": "Backend-focused software engineer with strong Python/FastAPI and PostgreSQL experience. Resume aligns well with backend and platform roles; adding leadership metrics would strengthen senior-track applications.",
+  "parsed_char_count": 2840,
+  "scores": {
+    "resume_score": 78,
+    "ats_score": 72,
+    "model": "gpt-4o-mini",
+    "prompt_version": "public-v1"
+  },
+  "analysis": {
+    "structured_resume": {
+      "basics": {
+        "name": "Jane Example",
+        "email": "jane@example.com",
+        "phone": "+1 555 0100",
+        "linkedin": "https://www.linkedin.com/in/jane-example",
+        "github": "https://github.com/janeexample"
+      },
+      "skills": ["Python", "PostgreSQL", "FastAPI", "Docker", "AWS"]
+    },
+    "strengths": [
+      "Clear technical stack alignment with backend roles",
+      "Concrete stack keywords for ATS (Python, Postgres, AWS)",
+      "Progressive responsibility implied by scale metrics"
+    ],
+    "weaknesses": [
+      "Limited quantified business outcomes on some bullets",
+      "Leadership and cross-functional examples are thin"
+    ],
+    "improvement_suggestions": [
+      "Add 1–2 metrics per role (latency, cost, reliability)",
+      "Tighten top summary to 3 lines with role target"
+    ],
+    "recommended_roles": [
+      "Backend Engineer",
+      "API Engineer",
+      "Platform Engineer"
+    ],
+    "skills_assessment": {
+      "technical_skills": ["Python", "SQL/PostgreSQL", "API design", "AWS"],
+      "soft_skills": ["Problem solving", "Ownership"],
+      "proficiency_notes": "Depth strongest in API and data layers."
+    },
+    "skill_gap_analysis": {
+      "gaps": [
+        {
+          "skill": "Observability",
+          "gap_description": "No explicit mention of metrics/tracing tooling.",
+          "importance": "medium"
+        }
+      ],
+      "industry_context": "Staff-track roles often expect measurable system ownership."
+    },
+    "ats_compatibility": {
+      "score": 72,
+      "keywords_match": ["Python", "PostgreSQL", "REST", "AWS", "Docker"],
+      "formatting_notes": "One-column layout recommended for ATS parsing.",
+      "suggestions": ["Mirror target job keywords in a Skills section"]
+    },
+    "course_recommendations": [
+      {
+        "title": "System Design for Backend Engineers",
+        "provider": "MicroDegree",
+        "rationale": "Strengthen architecture narrative for senior interviews."
+      }
+    ]
+  }
+}

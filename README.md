@@ -277,15 +277,19 @@ Use **`deploy/DEPLOYMENT.md`**: Dockerfiles, Compose, Nginx reverse proxy, Certb
 
 ## 11. Screenshots & demo
 
-> Add GIFs and screenshots to `docs/assets/` and embed them here for discoverability.
-
-| Resume analysis | Career chat |
-| ---------------- | ------------ |
-| _Screenshot coming soon_ | _Screenshot coming soon_ |
-
-<!-- Example after adding assets:
 ![Resume analysis demo](docs/assets/resume-analysis-demo.gif)
--->
+
+| Landing — upload resume | AI analysis results |
+| ----------------------- | ------------------- |
+| Drop zone + one-click analyze | ATS score, strengths, skill gaps, course recommendations |
+
+Re-record locally (mock API, no OpenAI key):
+
+```bash
+cd frontend && npm run dev
+cd ../scripts && npm install && npx playwright install chromium
+node record-resume-demo.mjs
+```
 
 ## 12. Roadmap
 
