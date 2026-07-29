@@ -1,6 +1,41 @@
+<div align="center">
+
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
+![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=next.js)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase)
+![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+![CI](https://img.shields.io/github/actions/workflow/status/habinrahman/MyCareer-AI/ci.yml?branch=main&label=CI&style=for-the-badge)
+
 # MyCareer AI
 
-MyCareer AI is an AI-powered resume intelligence and career mentorship platform designed to help students analyze resumes, benchmark against industry standards, receive personalized AI guidance, and improve their employability.
+**AI-powered resume intelligence and career mentorship** — analyze resumes, benchmark against industry standards, chat with an AI career mentor, and improve employability.
+
+[Features](#features) · [Quick start](#3-local-development-without-docker) · [Deploy](#7-deploying-on-a-digitalocean-droplet) · [Contributing](./CONTRIBUTING.md) · [Changelog](./CHANGELOG.md)
+
+</div>
+
+---
+
+## Features
+
+| Feature | Description |
+| -------- | ------------ |
+| **Resume analysis** | ATS scoring, strengths/weaknesses, keyword gaps, structured JSON via OpenAI |
+| **Career chat** | Streaming SSE mentorship with session history and optional structured facets |
+| **Benchmarks** | Compare skills and experience against career-path benchmarks |
+| **Job matching** | Semantic job fit scoring with pgvector embeddings |
+| **PDF reports** | Downloadable analysis reports with QR verification |
+| **Public resume tool** | Lead-capture flow for unauthenticated resume review |
+| **Production-ready** | Docker Compose, Nginx TLS, rate limiting, JWT auth, RLS-ready schema |
+
+## Tech stack
+
+- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, TanStack Query, Supabase Auth
+- **Backend**: FastAPI (async), OpenAI SDK, SQLAlchemy + asyncpg, pgvector
+- **Data**: Supabase PostgreSQL, Storage, Row Level Security
+- **Ops**: Docker, GitHub Actions CI, Dependabot, DigitalOcean deployment guides
 
 Stack: **resume analysis** with OpenAI, **personalized career guidance** via chat, **Supabase** (Auth, Postgres, Storage, pgvector), and a **Next.js** + **FastAPI** split.
 
@@ -240,6 +275,41 @@ Use **`deploy/DEPLOYMENT.md`**: Dockerfiles, Compose, Nginx reverse proxy, Certb
 └── README.md
 ```
 
-## 10. License
+## 11. Screenshots & demo
 
-Proprietary or MIT — choose and add a `LICENSE` file as needed.
+> Add GIFs and screenshots to `docs/assets/` and embed them here for discoverability.
+
+| Resume analysis | Career chat |
+| ---------------- | ------------ |
+| _Screenshot coming soon_ | _Screenshot coming soon_ |
+
+<!-- Example after adding assets:
+![Resume analysis demo](docs/assets/resume-analysis-demo.gif)
+-->
+
+## 12. Roadmap
+
+- [ ] v0.2 — GitHub Discussions + community issue triage
+- [ ] v0.3 — Enhanced job board integrations
+- [ ] v0.4 — Multi-language resume support
+- [ ] v1.0 — Stable public API + hosted demo instance
+
+See [CHANGELOG.md](./CHANGELOG.md) for release history.
+
+## 13. FAQ
+
+**Do I need OpenAI and Supabase accounts?**  
+Yes for full functionality. The public resume route can run stateless without DB for basic demos.
+
+**Can I self-host?**  
+Yes — use Docker Compose and follow [`deploy/DEPLOYMENT.md`](deploy/DEPLOYMENT.md).
+
+**Is this production-ready?**  
+The codebase includes auth, rate limits, TLS guidance, and tests, but you must configure RLS, secrets, and monitoring for your environment.
+
+**How do I contribute?**  
+See [CONTRIBUTING.md](./CONTRIBUTING.md). Good first issues are tagged `good first issue`.
+
+## 14. License
+
+[MIT License](./LICENSE) — Copyright (c) 2025 Habin Abdul Rahman.
